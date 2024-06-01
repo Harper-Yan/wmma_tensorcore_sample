@@ -41,8 +41,6 @@ __host__ void InitMatrix(half *A, half *B, half *C)
 		A[i] = i;
 	for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
 		B[i] = i;
-	for (int i = 0; i < M_TOTAL*N_TOTAL; i++)
-		C[i] = 0;
 }
 
 
