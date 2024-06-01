@@ -35,7 +35,7 @@
 //__global__ void WMMAINT8()
 using namespace nvcuda;
 
-__host__ void InitMatrix(half *A, half *B, float *C)
+__host__ void InitMatrix(half *A, half *B, half *C)
 {
 	for (int i = 0; i < M_TOTAL*K_TOTAL; i++)
 		A[i] = i;
