@@ -23,9 +23,9 @@
 #define K 16
 
 // GEMM configuration.
-#define M_TILES 256
-#define N_TILES 256
-#define K_TILES 256
+#define M_TILES 1
+#define N_TILES 1
+#define K_TILES 1
 
 #define M_TOTAL (M * M_TILES)
 #define N_TOTAL (N * N_TILES)
@@ -38,11 +38,11 @@ using namespace nvcuda;
 __host__ void InitMatrix(half *A, half *B, float *C)
 {
 	for (int i = 0; i < M_TOTAL*K_TOTAL; i++)
-		A[i] = __float2half(rand() % 1000 / 1000.0f);
+		A[i] = i;
 	for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
-		B[i] = __float2half(rand() % 1000 / 1000.0f);
+		B[i] = i;
 	for (int i = 0; i < M_TOTAL*N_TOTAL; i++)
-		C[i] = rand() % 1000 / 1000.0f;
+		C[i] = 0;
 }
 
 
@@ -110,6 +110,15 @@ cudaError_t CalcWMMA(half *A, half *B, float *C, float *D)
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C, D);
 	cuda_status = cudaDeviceSynchronize();
+
+	for(int i=0; i < M_TOTAL; i++)
+	{
+		for(int j=0; j< N_TOTAL; j++)
+		{
+			printf("%f  ", __half2float(B[i*N_TOTAL+j]));
+		}
+		printf("\n");
+	}
 	
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -162,7 +171,7 @@ int main()
 	printf("[*] Computing D = A * B +C with Tensor Cores...\n");
 	// D = A * B +C, D holds the result after ret
 	cuda_status = CalcWMMA(A, B, C, D);
-	
+
 	cuda_status = cudaDeviceReset();
 	if (cuda_status != cudaSuccess) {
 		printf("cudaDeviceReset failed! ");
