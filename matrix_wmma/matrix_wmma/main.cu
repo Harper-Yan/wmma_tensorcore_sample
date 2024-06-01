@@ -47,15 +47,15 @@ __host__ void InitMatrix(half *A, half *B, float *C)
 
 
 
-__global__ void WMMAF16TensorCore(half *A, half *B, float *C)
+__global__ void WMMAF16TensorCore(half *A, half *B, half *C)
 {
 	int ix = (blockIdx.x * blockDim.x + threadIdx.x)/WARP_SIZE;
 	int iy = (blockIdx.y * blockDim.y + threadIdx.y);
 	
 	wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
 	wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::col_major> b_frag;
-	wmma::fragment<wmma::accumulator, M, N, K, float> ab_frag;
-	wmma::fragment<wmma::accumulator, M, N, K, float> c_frag;
+	wmma::fragment<wmma::accumulator, M, N, K, half> ab_frag;
+	wmma::fragment<wmma::accumulator, M, N, K, half> c_frag;
 	
 	wmma::fill_fragment(ab_frag, 0.0f);
 
@@ -90,7 +90,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, float *C)
 	}
 }
 
-cudaError_t CalcWMMA(half *A, half *B, float *C)
+cudaError_t CalcWMMA(half *A, half *B, half *C)
 {
 	cudaError_t cuda_status;
 	dim3 gridDim, blockDim;
@@ -114,7 +114,7 @@ cudaError_t CalcWMMA(half *A, half *B, float *C)
 	{
 		for(int j=0; j< N_TOTAL; j++)
 		{
-			printf("%f  ", C[i*N_TOTAL+j]);
+			printf("%f  ", __half2float(C[i*N_TOTAL+j]));
 		}
 		printf("\n");
 	}
@@ -149,12 +149,12 @@ int main()
 	// Matrix on device
 	half *A;
 	half *B;
-	float *C;
+	half *C;
 
 	// CUDA Unified Memory 
 	cudaMallocManaged((void **)&A, sizeof(half) * M_TOTAL * K_TOTAL);
 	cudaMallocManaged((void **)&B, sizeof(half) * K_TOTAL * N_TOTAL);
-	cudaMallocManaged((void **)&C, sizeof(float) * M_TOTAL * N_TOTAL);
+	cudaMallocManaged((void **)&C, sizeof(half) * M_TOTAL * N_TOTAL);
 	
 	// Init matrix A B C on host
 	//InitHostMatrix(host_A, host_B, host_C);
