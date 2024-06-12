@@ -41,52 +41,43 @@ __host__ void InitMatrix(half *A, half *B, half *C)
 		A[i] = i;
 	for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
 		B[i] = i;
+	// for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
+	// 	C[i] = i;
 }
 
+__global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
+    int ix = (blockIdx.x * blockDim.x + threadIdx.x) / WARP_SIZE;
+    int iy = (blockIdx.y * blockDim.y + threadIdx.y);
+    
+    wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
+    wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::col_major> b_frag;
+    wmma::fragment<wmma::accumulator, M, N, K, half> ab_frag;
+    
+    wmma::fill_fragment(ab_frag, 0.0f);
 
+    int a_col, a_row, b_col, b_row;
+    a_row = ix * M;
+    b_row = iy * N;
 
-__global__ void WMMAF16TensorCore(half *A, half *B, half *C)
-{
-	int ix = (blockIdx.x * blockDim.x + threadIdx.x)/WARP_SIZE;
-	int iy = (blockIdx.y * blockDim.y + threadIdx.y);
-	
-	wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
-	wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::col_major> b_frag;
-	wmma::fragment<wmma::accumulator, M, N, K, half> ab_frag;
-	wmma::fragment<wmma::accumulator, M, N, K, half> c_frag;
-	
-	wmma::fill_fragment(ab_frag, 0.0f);
+    for (int k = 0; k < K_TOTAL; k += K) {
+        a_col = k;
+        b_col = k;
 
-	// AB = A*B
-	int a_col, a_row, b_col, b_row, c_col, c_row;
-	a_row = ix * M;
-	b_row = iy * N;
-	for (int k=0; k<K_TOTAL; k+=K) {
-		a_col = b_col = k;
+        if (a_row < M_TOTAL && a_col < K_TOTAL && b_row < K_TOTAL && b_col < N_TOTAL) {
+            // Load the inputs
+            wmma::load_matrix_sync(a_frag, A + a_col + a_row * M_TOTAL, M_TOTAL);
+            wmma::load_matrix_sync(b_frag, B + b_row + b_col * N_TOTAL, N_TOTAL);
 
-		if (a_row < M_TOTAL && a_col < K_TOTAL && b_row < K_TOTAL && b_col < N_TOTAL) {
-			// Load the inputs
-			wmma::load_matrix_sync(a_frag, A + a_col + a_row * M_TOTAL, M_TOTAL);
-			wmma::load_matrix_sync(b_frag, B + b_col + b_col * K_TOTAL, K_TOTAL);
+            // Perform the matrix multiplication
+            wmma::mma_sync(ab_frag, a_frag, b_frag, ab_frag);
+        }
+    }
 
-			// Perform the matrix multiplication
-			wmma::mma_sync(ab_frag, a_frag, b_frag, ab_frag);
-		}
-	}
-
-	c_col = b_row;
-	c_row = a_row;
-	if (c_row < M_TOTAL && c_col < N_TOTAL) {
-		wmma::load_matrix_sync(c_frag, C + c_col + c_row * N_TOTAL, N_TOTAL, wmma::mem_row_major);
-
-		for (int i = 0; i < c_frag.num_elements; i++) {
-			c_frag.x[i] = ab_frag.x[i];
-		}
-
-		// Store the output
-		wmma::store_matrix_sync(C + c_col + c_row * N_TOTAL, c_frag, N_TOTAL, wmma::mem_row_major);
-	}
+    if (a_row < M_TOTAL && b_row < N_TOTAL) {
+        wmma::store_matrix_sync(C + b_row * M_TOTAL + a_row, ab_frag, M_TOTAL, wmma::mem_row_major);
+    }
 }
+
 
 cudaError_t CalcWMMA(half *A, half *B, half *C)
 {
