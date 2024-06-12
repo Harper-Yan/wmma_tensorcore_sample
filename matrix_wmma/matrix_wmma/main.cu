@@ -38,9 +38,9 @@ using namespace nvcuda;
 __host__ void InitMatrix(half *A, half *B, half *C)
 {
 	for (int i = 0; i < M_TOTAL*K_TOTAL; i++)
-		A[i] = i;
+		A[i] = __float2half(i % 3);
 	for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
-		B[i] = i;
+		B[i] = __float2half(i % 3);
 	for (int i = 0; i < M_TOTAL*N_TOTAL; i++)
 	 	C[i] = 0;
 }
