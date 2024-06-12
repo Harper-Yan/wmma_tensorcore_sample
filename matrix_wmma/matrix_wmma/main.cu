@@ -83,13 +83,6 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 
 int main()
 {
-	cudaError_t cuda_status;
-	cuda_status = cudaSetDevice(0);
-	if (cuda_status != cudaSuccess) {
-		printf("cudaSetDevice failed! ");
-		return 1;
-	}
-
 	// Matrix on device
 	half *A;
 	half *B;
@@ -99,6 +92,8 @@ int main()
 	cudaMallocManaged((void **)&A, sizeof(half) * M_TOTAL * K_TOTAL);
 	cudaMallocManaged((void **)&B, sizeof(half) * K_TOTAL * N_TOTAL);
 	cudaMallocManaged((void **)&C, sizeof(half) * M_TOTAL * N_TOTAL);
+
+	InitMatrix(A, B, C);
 
 	dim3 gridDim, blockDim;
 	// 16 warps in one block
@@ -119,14 +114,6 @@ int main()
 		printf("\n");
 	}
 	
-	// Init matrix A B C on host
-	//InitHostMatrix(host_A, host_B, host_C);
-	printf("[*] Initializing Matrix...\n");
-	InitMatrix(A, B, C);
-	printf("[+]   A: %d x %d\n", M_TOTAL, K_TOTAL);
-	printf("[+]   B: %d x %d\n", K_TOTAL, N_TOTAL);
-	printf("[+]   C: %d x %d\n", M_TOTAL, N_TOTAL);
-
 	cudaFree(A);
 	cudaFree(B);
 	cudaFree(C);
