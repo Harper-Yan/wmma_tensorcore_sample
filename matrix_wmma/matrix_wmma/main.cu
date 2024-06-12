@@ -81,9 +81,25 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
     }*/
 }
 
-
-void CalcWMMA(half *A, half *B, half *C)
+int main()
 {
+	cudaError_t cuda_status;
+	cuda_status = cudaSetDevice(0);
+	if (cuda_status != cudaSuccess) {
+		printf("cudaSetDevice failed! ");
+		return 1;
+	}
+
+	// Matrix on device
+	half *A;
+	half *B;
+	half *C;
+
+	// CUDA Unified Memory 
+	cudaMallocManaged((void **)&A, sizeof(half) * M_TOTAL * K_TOTAL);
+	cudaMallocManaged((void **)&B, sizeof(half) * K_TOTAL * N_TOTAL);
+	cudaMallocManaged((void **)&C, sizeof(half) * M_TOTAL * N_TOTAL);
+
 	dim3 gridDim, blockDim;
 	// 16 warps in one block
 	blockDim.x = 1 * WARP_SIZE; 
@@ -91,12 +107,6 @@ void CalcWMMA(half *A, half *B, half *C)
 
 	gridDim.x = (M_TOTAL + (M * blockDim.x / WARP_SIZE - 1)) / (M * blockDim.x / WARP_SIZE);
 	gridDim.y = (N_TOTAL + N * blockDim.y - 1) / (N * blockDim.y);
-
-	// for Performance Metrics
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C);
 
@@ -109,41 +119,6 @@ void CalcWMMA(half *A, half *B, half *C)
 		printf("\n");
 	}
 	
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-
-	float milliseconds = 0;
-	cudaEventElapsedTime(&milliseconds, start, stop);
-
-	// for Performance Metrics
-	printf("[+] GPU(with Tensor Cores) Elapsed Time: %f ms\n", milliseconds);
-	// references from https://devblogs.nvidia.com/how-implement-performance-metrics-cuda-cc/
-	printf("[+] TFLOPS: %.2f\n", ((double)M_TOTAL * N_TOTAL* K_TOTAL * 2) / milliseconds / 1e9);
-	cudaEventDestroy(start);
-	cudaEventDestroy(stop);
-}
-
-
-int main()
-{
-	cudaError_t cuda_status;
-	cuda_status = cudaSetDevice(0);
-	if (cuda_status != cudaSuccess) {
-		printf("cudaSetDevice failed! ");
-		return 1;
-	}
-
-
-	// Matrix on device
-	half *A;
-	half *B;
-	half *C;
-
-	// CUDA Unified Memory 
-	cudaMallocManaged((void **)&A, sizeof(half) * M_TOTAL * K_TOTAL);
-	cudaMallocManaged((void **)&B, sizeof(half) * K_TOTAL * N_TOTAL);
-	cudaMallocManaged((void **)&C, sizeof(half) * M_TOTAL * N_TOTAL);
-	
 	// Init matrix A B C on host
 	//InitHostMatrix(host_A, host_B, host_C);
 	printf("[*] Initializing Matrix...\n");
@@ -151,11 +126,6 @@ int main()
 	printf("[+]   A: %d x %d\n", M_TOTAL, K_TOTAL);
 	printf("[+]   B: %d x %d\n", K_TOTAL, N_TOTAL);
 	printf("[+]   C: %d x %d\n", M_TOTAL, N_TOTAL);
-	
-	// computing gemm using tensor core
-	printf("[*] Computing D = A * B +C with Tensor Cores...\n");
-	// D = A * B +C, D holds the result after ret
-	CalcWMMA(A, B, C);
 
 	cudaFree(A);
 	cudaFree(B);
