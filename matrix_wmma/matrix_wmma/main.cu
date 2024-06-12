@@ -23,9 +23,9 @@
 #define K 16
 
 // GEMM configuration.
-#define M_TILES 1
-#define N_TILES 1
-#define K_TILES 1
+#define M_TILES 2
+#define N_TILES 2
+#define K_TILES 2
 
 #define M_TOTAL (M * M_TILES)
 #define N_TOTAL (N * N_TILES)
@@ -94,14 +94,15 @@ int main()
 
 	dim3 gridDim, blockDim;
 	// 16 warps in one block
-	blockDim.x = 1 * WARP_SIZE; 
-	blockDim.y = 1;
+	blockDim.x = N_TILES * WARP_SIZE; 
+	blockDim.y = M_TILES;
 
 	gridDim.x = (M_TOTAL + (M * blockDim.x / WARP_SIZE - 1)) / (M * blockDim.x / WARP_SIZE);
 	gridDim.y = (N_TOTAL + N * blockDim.y - 1) / (N * blockDim.y);
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C);
 	cudaDeviceSynchronize();
+	
 	for(int i=0; i < M_TOTAL; i++)
 	{
 		for(int j=0; j< N_TOTAL; j++)
