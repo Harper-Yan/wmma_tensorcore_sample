@@ -104,7 +104,7 @@ int main()
 	gridDim.y = (N_TOTAL + N * blockDim.y - 1) / (N * blockDim.y);
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C);
-
+	cudaDeviceSynchronize();
 	for(int i=0; i < M_TOTAL; i++)
 	{
 		for(int j=0; j< N_TOTAL; j++)
