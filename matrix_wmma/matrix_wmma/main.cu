@@ -13,7 +13,7 @@
 #include <mma.h>
 #include <curand_kernel.h>
 #include "cuda_runtime.h"
-#include "device_launch_parameters.h
+#include "device_launch_parameters.h"
 
 #define WARP_SIZE 32
 
