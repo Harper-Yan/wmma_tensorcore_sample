@@ -49,7 +49,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
     int ix = (blockIdx.x * blockDim.x + threadIdx.x) / WARP_SIZE;
     int iy = (blockIdx.y * blockDim.y + threadIdx.y);
 
-	C[ix * N + iy] = 1;
+	C[5] = 1.02 ; C[6] = 1.1;
 
 /*
     wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
@@ -82,7 +82,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 }
 
 
-cudaError_t CalcWMMA(half *A, half *B, half *C)
+void CalcWMMA(half *A, half *B, half *C)
 {
 	dim3 gridDim, blockDim;
 	// 16 warps in one block
