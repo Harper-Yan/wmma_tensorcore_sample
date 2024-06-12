@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <cuda.h>
 #include <mma.h>
-
+#include <curand_kernel.h>
 #include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#include "device_launch_parameters.h
 
 #define WARP_SIZE 32
 
@@ -38,9 +38,9 @@ using namespace nvcuda;
 __host__ void InitMatrix(half *A, half *B, half *C)
 {
 	for (int i = 0; i < M_TOTAL*K_TOTAL; i++)
-		A[i] = __float2half(i % 3);
+		A[i] =  __float2half(static_cast<float>(rand()) / RAND_MAX);
 	for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
-		B[i] = __float2half(i % 3);
+		B[i] =  __float2half(static_cast<float>(rand()) / RAND_MAX);
 	for (int i = 0; i < M_TOTAL*N_TOTAL; i++)
 	 	C[i] = 0;
 }
