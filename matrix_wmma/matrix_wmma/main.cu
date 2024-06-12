@@ -5,7 +5,7 @@
 //    To minimize bank conflicts, you should try to shift row or 
 // column of matrics in shared memory
 // cmd: 
-//    $ nvcc -o main main.cu -arch sm_75
+//    $ nvcc -o main main.cu -arch sm_70
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,9 +49,6 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
     int ix = (blockIdx.x * blockDim.x + threadIdx.x) / WARP_SIZE;
     int iy = (blockIdx.y * blockDim.y + threadIdx.y);
 
-	C[5] = 1.02 ; C[6] = 1.1;
-
-/*
     wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
     wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::col_major> b_frag;
     wmma::fragment<wmma::accumulator, M, N, K, half> ab_frag;
@@ -78,7 +75,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 
     if (a_row < M_TOTAL && b_row < N_TOTAL) {
         wmma::store_matrix_sync(C + b_row * M_TOTAL + a_row, ab_frag, M_TOTAL, wmma::mem_row_major);
-    }*/
+    }
 }
 
 int main()
