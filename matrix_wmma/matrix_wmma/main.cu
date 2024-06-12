@@ -84,11 +84,10 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 
 cudaError_t CalcWMMA(half *A, half *B, half *C)
 {
-	cudaError_t cuda_status;
 	dim3 gridDim, blockDim;
 	// 16 warps in one block
-	blockDim.x = 4 * WARP_SIZE; 
-	blockDim.y = 4;
+	blockDim.x = 1 * WARP_SIZE; 
+	blockDim.y = 1;
 
 	gridDim.x = (M_TOTAL + (M * blockDim.x / WARP_SIZE - 1)) / (M * blockDim.x / WARP_SIZE);
 	gridDim.y = (N_TOTAL + N * blockDim.y - 1) / (N * blockDim.y);
@@ -100,7 +99,6 @@ cudaError_t CalcWMMA(half *A, half *B, half *C)
 	cudaEventRecord(start);
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C);
-	cuda_status = cudaDeviceSynchronize();
 
 	for(int i=0; i < M_TOTAL; i++)
 	{
@@ -123,8 +121,6 @@ cudaError_t CalcWMMA(half *A, half *B, half *C)
 	printf("[+] TFLOPS: %.2f\n", ((double)M_TOTAL * N_TOTAL* K_TOTAL * 2) / milliseconds / 1e9);
 	cudaEventDestroy(start);
 	cudaEventDestroy(stop);
-
-	return cuda_status;
 }
 
 
@@ -159,13 +155,7 @@ int main()
 	// computing gemm using tensor core
 	printf("[*] Computing D = A * B +C with Tensor Cores...\n");
 	// D = A * B +C, D holds the result after ret
-	cuda_status = CalcWMMA(A, B, C);
-
-	cuda_status = cudaDeviceReset();
-	if (cuda_status != cudaSuccess) {
-		printf("cudaDeviceReset failed! ");
-		return 1;
-	}
+	CalcWMMA(A, B, C);
 
 	cudaFree(A);
 	cudaFree(B);
