@@ -50,7 +50,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
     int iy = (blockIdx.y * blockDim.y + threadIdx.y);
 
     wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
-    wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::rol_major> b_frag;
+    wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::row_major> b_frag;
     wmma::fragment<wmma::accumulator, M, N, K, half> ab_frag;
     
     wmma::fill_fragment(ab_frag, 0.0f);
@@ -69,7 +69,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 
 		for (int i=0; i < a_frag.num_elements; i++)
 		{
-			ab_frag[i] = a_frag[i]+b_frag[i];
+			ab_frag.x[i] = a_frag.x[i]+b_frag.x[i];
 		}
 
 		// Perform the matrix multiplication
