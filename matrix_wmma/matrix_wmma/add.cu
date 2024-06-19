@@ -47,7 +47,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
     int iy = threadIdx.y;
 
     wmma::fragment<wmma::matrix_a, M, N, M, half, wmma::row_major> a_frag;
-    wmma::fragment<wmma::matrix_b, M, N, M, half, wmma::row_major> b_frag;
+    wmma::fragment<wmma::matrix_a, M, N, M, half, wmma::row_major> b_frag;
     wmma::fragment<wmma::accumulator, M, N, M, half> ab_frag;
     
     wmma::fill_fragment(ab_frag, 0.0f);
