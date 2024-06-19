@@ -66,7 +66,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 
 		for (int i=0; i < a_frag.num_elements; i++)
 		{
-			ab_frag.x[i] = a_frag.x[i]+b_frag.x[i];
+			ab_frag.x[i] = a_frag.x[i]//+b_frag.x[i];
 		}
 
 		// Perform the matrix multiplication
