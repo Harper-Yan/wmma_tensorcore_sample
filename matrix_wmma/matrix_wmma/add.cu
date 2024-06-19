@@ -20,16 +20,13 @@
 // MMA matrix tile dimensions.
 #define M 16
 #define N 16
-#define K 16
 
 // GEMM configuration.
 #define M_TILES 1
 #define N_TILES 1
-#define K_TILES 1
 
 #define M_TOTAL (M * M_TILES)
 #define N_TOTAL (N * N_TILES)
-#define K_TOTAL (K * K_TILES)
 
 
 //__global__ void WMMAINT8()
@@ -37,34 +34,34 @@ using namespace nvcuda;
 
 __host__ void InitMatrix(half *A, half *B, half *C)
 {
-	for (int i = 0; i < M_TOTAL*K_TOTAL; i++)
+	for (int i = 0; i < M_TOTAL*N; i++)
 		A[i] =  __float2half( i / K_TOTAL);
-	for (int i = 0; i < K_TOTAL*N_TOTAL; i++)
+	for (int i = 0; i < M*N_TOTAL; i++)
 		B[i] =  __float2half( i / K_TOTAL);
 	for (int i = 0; i < M_TOTAL*N_TOTAL; i++)
 	 	C[i] = 0;
 }
 
 __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
-    int ix = (blockIdx.x * blockDim.x + threadIdx.x) / WARP_SIZE;
-    int iy = (blockIdx.y * blockDim.y + threadIdx.y);
+    int ix = threadIdx.x / WARP_SIZE;
+    int iy = threadIdx.y;
 
-    wmma::fragment<wmma::matrix_a, M, N, K, half, wmma::row_major> a_frag;
-    wmma::fragment<wmma::matrix_b, M, N, K, half, wmma::row_major> b_frag;
-    wmma::fragment<wmma::accumulator, M, N, K, half> ab_frag;
+    wmma::fragment<wmma::matrix_a, M, N, M, half, wmma::row_major> a_frag;
+    wmma::fragment<wmma::matrix_b, M, N, M, half, wmma::row_major> b_frag;
+    wmma::fragment<wmma::accumulator, M, N, M, half> ab_frag;
     
     wmma::fill_fragment(ab_frag, 0.0f);
 
     int a_col, a_row, b_col, b_row;
     a_row = ix * M;
-    b_row = ix * N;
+    b_row = ix * M;
 
-	a_col = ix * K;
+	a_col = iy * N;
 	b_col = iy * N;
 
-	if (a_row < M_TOTAL && a_col < K_TOTAL && b_row < K_TOTAL && b_col < N_TOTAL) {
+	if (a_row < M_TOTAL && a_col <  N_TOTAL  && b_row < M_TOTAL && b_col < N_TOTAL) {
 		// Load the inputs
-		wmma::load_matrix_sync(a_frag, A + a_col + a_row * K_TOTAL, K_TOTAL);
+		wmma::load_matrix_sync(a_frag, A + a_col + a_row * N_TOTAL, N_TOTAL);
 		wmma::load_matrix_sync(b_frag, B + b_col + b_row * N_TOTAL, N_TOTAL);
 
 		for (int i=0; i < a_frag.num_elements; i++)
@@ -78,7 +75,7 @@ __global__ void WMMAF16TensorCore(half *A, half *B, half *C) {
 
 
     if (a_row < M_TOTAL && b_row < N_TOTAL) {
-        wmma::store_matrix_sync(C + b_row * M_TOTAL + a_row, ab_frag, M_TOTAL, wmma::mem_row_major);
+        wmma::store_matrix_sync(C + a_row * N_TOTAL + a_col, ab_frag, N_TOTAL, wmma::mem_row_major);
     }
 }
 
@@ -90,8 +87,8 @@ int main()
 	half *C;
 
 	// CUDA Unified Memory 
-	cudaMallocManaged((void **)&A, sizeof(half) * M_TOTAL * K_TOTAL);
-	cudaMallocManaged((void **)&B, sizeof(half) * K_TOTAL * N_TOTAL);
+	cudaMallocManaged((void **)&A, sizeof(half) * M_TOTAL * N_TOTAL);
+	cudaMallocManaged((void **)&B, sizeof(half) * M_TOTAL * N_TOTAL);
 	cudaMallocManaged((void **)&C, sizeof(half) * M_TOTAL * N_TOTAL);
 
 	InitMatrix(A, B, C);
@@ -105,7 +102,7 @@ int main()
 		printf("\n");
 	}
 
-		for(int i=0; i < M_TOTAL; i++)
+	for(int i=0; i < M_TOTAL; i++)
 	{
 		for(int j=0; j< N_TOTAL; j++)
 		{
@@ -119,8 +116,8 @@ int main()
 	blockDim.x = N_TILES * WARP_SIZE; 
 	blockDim.y = M_TILES;
 
-	gridDim.x = (M_TOTAL + (M * blockDim.x / WARP_SIZE - 1)) / (M * blockDim.x / WARP_SIZE);
-	gridDim.y = (N_TOTAL + N * blockDim.y - 1) / (N * blockDim.y);
+	gridDim.x = 1;
+	gridDim.y = 1;
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C);
 	cudaDeviceSynchronize();
