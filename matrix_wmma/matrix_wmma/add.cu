@@ -5,7 +5,7 @@
 //    To minimize bank conflicts, you should try to shift row or 
 // column of matrics in shared memory
 // cmd: 
-//    $ nvcc -o main main.cu -arch sm_70
+//    $ nvcc -o add add.cu -arch sm_70
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,9 +35,9 @@ using namespace nvcuda;
 __host__ void InitMatrix(half *A, half *B, half *C)
 {
 	for (int i = 0; i < M_TOTAL*N; i++)
-		A[i] =  __float2half( i / K_TOTAL);
+		A[i] =  __float2half( i / M_TOTAL);
 	for (int i = 0; i < M*N_TOTAL; i++)
-		B[i] =  __float2half( i / K_TOTAL);
+		B[i] =  __float2half( i / M_TOTAL);
 	for (int i = 0; i < M_TOTAL*N_TOTAL; i++)
 	 	C[i] = 0;
 }
