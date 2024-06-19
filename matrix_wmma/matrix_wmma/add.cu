@@ -93,6 +93,8 @@ int main()
 
 	InitMatrix(A, B, C);
 
+	printf("Matrix A is\n");
+
 	for(int i=0; i < M_TOTAL; i++)
 	{
 		for(int j=0; j< N_TOTAL; j++)
@@ -101,7 +103,7 @@ int main()
 		}
 		printf("\n");
 	}
-
+	printf("Matrix B is\n");
 	for(int i=0; i < M_TOTAL; i++)
 	{
 		for(int j=0; j< N_TOTAL; j++)
@@ -121,7 +123,7 @@ int main()
 
 	WMMAF16TensorCore<<<gridDim, blockDim>>>(A, B, C);
 	cudaDeviceSynchronize();
-	
+	printf("Matrix C is\n");
 	for(int i=0; i < M_TOTAL; i++)
 	{
 		for(int j=0; j< N_TOTAL; j++)
